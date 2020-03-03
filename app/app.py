@@ -35,7 +35,7 @@ def create_app():
         conn = sqlite3.connect('Spotify_Songs.db')
         conn.row_factory = dict_factory
         curs = conn.cursor()
-        all_songs = curs.execute('SELECT track_name, artist_name, genre FROM Songs LIMIT 10;').fetchall()
+        all_songs = curs.execute('SELECT track_name, artist_name, genre FROM songs LIMIT 10;').fetchall()
 
         return jsonify(all_songs)
 
