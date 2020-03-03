@@ -1,7 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-import pandas as pd
-from sqlalchemy import create_engine
-import sqlite3
+
 
 DB = SQLAlchemy()
 
@@ -30,10 +28,3 @@ class Songs(DB.Model):
 
     def __repr__(self):
         return '<Song {}>'.format(self.track_name)
-
-engine = create_engine('sqlite:///Spotify_Songs.db')
-Songs.metadata.create_all(engine)
-file_name = 'https://raw.githubusercontent.com/aguilargallardo/DS-Unit-2-Applied-Modeling/master/data/SpotifyFeatures.csv'
-df = pd.read_csv(file_name)
-DB = df.to_sql(con=engine, index_label='id',
-                   name=Songs.__tablename__, if_exists='replace')

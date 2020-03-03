@@ -25,15 +25,18 @@ def create_app():
     def hello_world():
         return "Hello World!"
 
-    #TODO make a route that takes in json data?
+    #TODO make a route that takes in json data and converts it to match the database?
+    @app.route('/user/data')
+    def user_data():
+        pass
 
-    #Model returns a of songs and we return the top 10
-    @app.route('/get/songs', methods=['GET'])
+    #Model returns a list of songs and we return the top 10
+    @app.route('/get/songs') #methods=['GET'])
     def get_songs():
         conn = sqlite3.connect('Spotify_Songs.db')
         conn.row_factory = dict_factory
         curs = conn.cursor()
-        all_songs = curs.execute('SELECT * FROM Songs LIMIT 10;').fetchall()
+        all_songs = curs.execute('SELECT track_name, artist_name, genre FROM Songs LIMIT 10;').fetchall()
 
         return jsonify(all_songs)
 
