@@ -11,6 +11,8 @@ flask = "*"
 numpy = "*"
 flask-sqlalchemy = "*"
 psycopg2 = "*"
+python-decouple = "*"
+pandas = "*"
 
 [requires]
 python_version = "3.7"
