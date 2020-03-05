@@ -1,5 +1,4 @@
 from flask import Flask, jsonify
-#from sqlalchemy import create_engine
 import sqlite3
 import pandas as pd
 from flask_sqlalchemy import SQLAlchemy
@@ -11,8 +10,8 @@ from sklearn.model_selection import train_test_split
 from typing import List, Tuple
 
 DB = SQLAlchemy()
-df = pd.read_csv(
-    'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/most_popular_spotify_songs.csv')
+#df = pd.read_csv(
+    #'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/most_popular_spotify_songs.csv')
 
 
 class Songs(DB.Model):
@@ -51,9 +50,11 @@ def dict_factory(cursor, row):
 
 def create_app():
     app = Flask(__name__)
-    DB = SQLAlchemy()
+
+    #DB = SQLAlchemy()
 
     app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite://Spotify_Songs.db"
+    
     engine = create_engine('sqlite:///Spotify_Songs.db')
     Songs.metadata.create_all(engine)
     file_name = 'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/most_popular_spotify_songs.csv'
@@ -95,12 +96,12 @@ def create_app():
     X = processed_df[features].values
     neigh.fit(X)
 
-    engine = create_engine('sqlite:///Spotify_Songs.db')
-    Songs.metadata.create_all(engine)
-    file_name = 'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/most_popular_spotify_songs.csv'
-    df = pd.read_csv(file_name)
-    db = df.to_sql(con=engine, index_label='id',
-                   name=Songs.__tablename__, if_exists='replace')
+    # engine = create_engine('sqlite:///Spotify_Songs.db')
+    # Songs.metadata.create_all(engine)
+    # file_name = 'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/most_popular_spotify_songs.csv'
+    # df = pd.read_csv(file_name)
+    # db = df.to_sql(con=engine, index_label='id',
+    #                name=Songs.__tablename__, if_exists='replace')
 
     def closest_ten(df: pd.DataFrame, X_array: np.ndarray, song_id: int) -> List[Tuple]:
         song = df.iloc[song_id]
@@ -123,21 +124,21 @@ def create_app():
 
         return "Welcome to our Spotify API!  Route to /populate first to populate the database"
 
-    #TODO make a route that takes in json data and converts it to match the database?
-    @app.route('/user/data')
-    def user_data():
-        pass
+    # #TODO make a route that takes in json data and converts it to match the database?
+    # @app.route('/user/data')
+    # def user_data():
+    #     pass
 
-    #Model returns a list of songs and we return the top 10
-    @app.route('/songs', methods=['GET'])  # methods=['GET'])
-    def get_songs():
-        conn = sqlite3.connect('sqlite://Spotify_Songs.db')
-        conn.row_factory = dict_factory
-        curs = conn.cursor()
-        all_songs = curs.execute(
-            'SELECT track_name, artist_name, genre FROM songs LIMIT 10;').fetchall()
+    # #Model returns a list of songs and we return the top 10
+    # @app.route('/songs', methods=['GET'])
+    # def get_songs():
+    #     conn = sqlite3.connect('sqlite://Spotify_Songs.db')
+    #     conn.row_factory = dict_factory
+    #     curs = conn.cursor()
+    #     all_songs = curs.execute(
+    #         'SELECT track_name, artist_name, genre FROM songs LIMIT 10;').fetchall()
 
-        return jsonify(all_songs)
+    #     return jsonify(all_songs)
 
     @app.route('/track/<track_id>', methods=['GET'])  # /<track_id>
     def track(track_id):
@@ -149,8 +150,10 @@ def create_app():
         song_recs = closest_ten(df, X, track_id)
         for idx in song_recs:
             song = curs.execute(
-                f'SELECT DISTINCT track_name, artist_name, genre FROM Songs WHERE id=={idx};').fetchall()
+                f'SELECT DISTINCT id, track_name, artist_name, genre FROM Songs WHERE id=={idx};').fetchone()
             songlist.append(song)
+        #songlist = tuple(songlist)
+        #songlist = list(dict.fromkeys(songlist)) # removes duplicates
 
         return jsonify(songlist)
 
