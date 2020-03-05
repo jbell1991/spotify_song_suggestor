@@ -4,7 +4,7 @@ import pandas as pd
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 import numpy as np
-from sklearn import preprocessing  # for category encoder
+from sklearn import preprocessing  
 from sklearn.neighbors import NearestNeighbors
 from sklearn.model_selection import train_test_split
 from typing import List, Tuple
@@ -13,7 +13,6 @@ DB = SQLAlchemy()
 
 class Songs(DB.Model):
     __tablename__ = "Songs"
-    #Tell SQLAlchemy what the table name is and if there's any table-specific arguments it should know about
     id = DB.Column(DB.BigInteger, primary_key=True)
     genre = DB.Column(DB.String(50))
     artist_name = DB.Column(DB.String(50))
@@ -34,27 +33,17 @@ class Songs(DB.Model):
     time_signature = DB.Column(DB.Integer)
     valence = DB.Column(DB.Float)
 
-    def __repr__(self):
-        return '<Song {}>'.format(self.track_name)
-
-
-def dict_factory(cursor, row):
-    d = {}
-    for idx, col in enumerate(cursor.description):
-        d[col[0]] = row[idx]
-    return d
-
 
 def create_app():
     app = Flask(__name__)
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite://Spotify_Songs.db"
+    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///Spotify_Songs.db"
     
     engine = create_engine('sqlite:///Spotify_Songs.db')
     Songs.metadata.create_all(engine)
     file_name = 'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/app/most_popular_spotify_songs.csv'
     df = pd.read_csv(file_name)
-    db = df.to_sql(con=engine, index_label='id',
+    df_sql = df.to_sql(con=engine, index_label='id',
                    name=Songs.__tablename__, if_exists='replace')
 
 
@@ -95,11 +84,17 @@ def create_app():
         _, neighbors = neigh.kneighbors(np.array([X_song]))
         return neighbors[0][1:]
 
+    def dict_factory(cursor, row):
+        d = {}
+        for idx, col in enumerate(cursor.description):
+            d[col[0]] = row[idx]
+        return d
+
     @app.route('/')
     def hello_world():
         return "Welcome to our Spotify API!"
 
-    @app.route('/track/<track_id>', methods=['GET'])  # /<track_id>
+    @app.route('/track/<track_id>', methods=['GET'])
     def track(track_id):
         track_id = int(track_id)
         conn = sqlite3.connect('Spotify_Songs.db')
