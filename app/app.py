@@ -44,7 +44,7 @@ def create_app():
     file_name = 'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/app/most_popular_spotify_songs.csv'
     df = pd.read_csv(file_name)
     df_sql = df.to_sql(con=engine, index_label='id',
-                   name=Songs.__tablename__, if_exists='replace')
+                       name=Songs.__tablename__, if_exists='replace')
 
 
     def pre_process(df):
@@ -92,7 +92,7 @@ def create_app():
 
     @app.route('/')
     def hello_world():
-        return "Welcome to our Spotify API!"
+        return "Hello World, welcome to our Spotify API!"
 
     @app.route('/track/<track_id>', methods=['GET'])
     def track(track_id):
