@@ -57,13 +57,11 @@ def create_app():
     
     engine = create_engine('sqlite:///Spotify_Songs.db')
     Songs.metadata.create_all(engine)
-    file_name = 'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/most_popular_spotify_songs.csv'
+    file_name = 'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/app/most_popular_spotify_songs.csv'
     df = pd.read_csv(file_name)
     db = df.to_sql(con=engine, index_label='id',
                    name=Songs.__tablename__, if_exists='replace')
 
-    df = pd.read_csv(
-        'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/most_popular_spotify_songs.csv')
 
     def pre_process(df):
         time_sig_encoding = {'0/4': 0, '1/4': 1,
@@ -96,13 +94,6 @@ def create_app():
     X = processed_df[features].values
     neigh.fit(X)
 
-    # engine = create_engine('sqlite:///Spotify_Songs.db')
-    # Songs.metadata.create_all(engine)
-    # file_name = 'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/most_popular_spotify_songs.csv'
-    # df = pd.read_csv(file_name)
-    # db = df.to_sql(con=engine, index_label='id',
-    #                name=Songs.__tablename__, if_exists='replace')
-
     def closest_ten(df: pd.DataFrame, X_array: np.ndarray, song_id: int) -> List[Tuple]:
         song = df.iloc[song_id]
         X_song = X[song_id]
@@ -122,7 +113,7 @@ def create_app():
     @app.route('/')
     def hello_world():
 
-        return "Welcome to our Spotify API!  Route to /populate first to populate the database"
+        return "Welcome to our Spotify API!"
 
     # #TODO make a route that takes in json data and converts it to match the database?
     # @app.route('/user/data')
@@ -146,11 +137,13 @@ def create_app():
         conn = sqlite3.connect('Spotify_Songs.db')
         conn.row_factory = dict_factory
         curs = conn.cursor()
+        #idx = curs.execute(f'SELECT id from songs where track_id=={track_id};').fetchall()
         songlist = []
         song_recs = closest_ten(df, X, track_id)
         for idx in song_recs:
             song = curs.execute(
-                f'SELECT DISTINCT id, track_name, artist_name, genre FROM Songs WHERE id=={idx};').fetchone()
+                f'SELECT DISTINCT id, track_name, artist_name, genre, track_id FROM Songs WHERE id=={idx};').fetchone()
+
             songlist.append(song)
         #songlist = tuple(songlist)
         #songlist = list(dict.fromkeys(songlist)) # removes duplicates
