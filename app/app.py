@@ -12,13 +12,7 @@ from typing import List, Tuple
 
 DB = SQLAlchemy()
 df = pd.read_csv(
-    'https://raw.githubusercontent.com/aguilargallardo/DS-Unit-2-Applied-Modeling/master/data/SpotifyFeatures.csv')
-
-
-
-
-
-
+    'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/most_popular_spotify_songs.csv')
 
 
 class Songs(DB.Model):
@@ -57,9 +51,18 @@ def dict_factory(cursor, row):
 
 def create_app():
     app = Flask(__name__)
+    DB = SQLAlchemy()
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite://Spotify_Songs.db"
+    engine = create_engine('sqlite:///Spotify_Songs.db')
+    Songs.metadata.create_all(engine)
+    file_name = 'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/most_popular_spotify_songs.csv'
+    df = pd.read_csv(file_name)
+    db = df.to_sql(con=engine, index_label='id',
+                   name=Songs.__tablename__, if_exists='replace')
 
     df = pd.read_csv(
-        'https://raw.githubusercontent.com/aguilargallardo/DS-Unit-2-Applied-Modeling/master/data/SpotifyFeatures.csv')
+        'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/most_popular_spotify_songs.csv')
 
     def pre_process(df):
         time_sig_encoding = {'0/4': 0, '1/4': 1,
@@ -81,7 +84,23 @@ def create_app():
             return(res)
         df = encode_and_bind(df, 'genre')
         return df
-    
+
+    """
+    This will run the nearest neighbors model when we instantiate the app.
+    """
+    processed_df = pre_process(df)
+
+    neigh = NearestNeighbors(n_neighbors=11)
+    features = list(processed_df.columns[4:])
+    X = processed_df[features].values
+    neigh.fit(X)
+
+    engine = create_engine('sqlite:///Spotify_Songs.db')
+    Songs.metadata.create_all(engine)
+    file_name = 'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/most_popular_spotify_songs.csv'
+    df = pd.read_csv(file_name)
+    db = df.to_sql(con=engine, index_label='id',
+                   name=Songs.__tablename__, if_exists='replace')
 
     def closest_ten(df: pd.DataFrame, X_array: np.ndarray, song_id: int) -> List[Tuple]:
         song = df.iloc[song_id]
@@ -89,25 +108,15 @@ def create_app():
         _, neighbors = neigh.kneighbors(np.array([X_song]))
         return neighbors[0][1:]
 
-    processed_df = pre_process(df)
-
-    neigh = NearestNeighbors(n_neighbors=11)
-    features = list(processed_df.columns[4:])
-    X = processed_df[features].values
-
-    neigh.fit(X)
-
-
-
-    @app.route('/populate')
-    def populate():
-        engine = create_engine('sqlite:///Spotify_Songs.db')
-        Songs.metadata.create_all(engine)
-        file_name = 'https://raw.githubusercontent.com/aguilargallardo/DS-Unit-2-Applied-Modeling/master/data/SpotifyFeatures.csv'
-        df = pd.read_csv(file_name)
-        DB = df.to_sql(con=engine, index_label='id',
-                       name=Songs.__tablename__, if_exists='replace')
-        return "Database has been made!"
+    # @app.route('/populate')
+    # def populate():
+    #     engine = create_engine('sqlite:///Spotify_Songs.db')
+    #     Songs.metadata.create_all(engine)
+    #     file_name = 'https://raw.githubusercontent.com/msnyd/spotify_song_suggestor/master/most_popular_spotify_songs.csv'
+    #     df = pd.read_csv(file_name)
+    #     db = df.to_sql(con=engine, index_label='id',
+    #             name=Songs.__tablename__, if_exists='replace')
+    #     return "Database has been made!"
 
     @app.route('/')
     def hello_world():
@@ -122,7 +131,7 @@ def create_app():
     #Model returns a list of songs and we return the top 10
     @app.route('/songs', methods=['GET'])  # methods=['GET'])
     def get_songs():
-        conn = sqlite3.connect('Spotify_Songs.db')
+        conn = sqlite3.connect('sqlite://Spotify_Songs.db')
         conn.row_factory = dict_factory
         curs = conn.cursor()
         all_songs = curs.execute(
@@ -139,9 +148,10 @@ def create_app():
         songlist = []
         song_recs = closest_ten(df, X, track_id)
         for idx in song_recs:
-            song = curs.execute(f'select * from Songs where id=={idx};').fetchall()
+            song = curs.execute(
+                f'SELECT DISTINCT track_name, artist_name, genre FROM Songs WHERE id=={idx};').fetchall()
             songlist.append(song)
-        
+
         return jsonify(songlist)
 
     return app
