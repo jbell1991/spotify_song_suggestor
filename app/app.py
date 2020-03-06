@@ -9,6 +9,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.model_selection import train_test_split
 from typing import List, Tuple
 from flask_cors import CORS
+import random
 
 DB = SQLAlchemy()
 
@@ -75,7 +76,7 @@ def create_app():
     """
     processed_df = pre_process(df)
 
-    neigh = NearestNeighbors(n_neighbors=11)
+    neigh = NearestNeighbors(n_neighbors=25)
     features = list(processed_df.columns[4:])
     X = processed_df[features].values
     neigh.fit(X)
@@ -108,6 +109,7 @@ def create_app():
             song = curs.execute(
                 f'SELECT * FROM Songs WHERE id=={idx};').fetchone()
             songlist.append(song)
+        songlist = random.sample(songlist, 10)
 
         return jsonify(songlist)
 
